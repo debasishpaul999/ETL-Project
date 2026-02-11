@@ -1,33 +1,66 @@
 import pandas as pd
-import sqlite3
-from config import DB_NAME, TABLE_NAME
+from sqlalchemy import text
+from utils.db_engine import get_engine
+from utils.logger import get_logger
+
+logger = get_logger()
+
+Z_THRESHOLD = 3
+
+
+def z_score(series):
+    return (series - series.mean()) / series.std()
+
 
 def detect_anomalies():
-    print("Running anomaly detection...")
 
-    conn = sqlite3.connect(DB_NAME)
-    df = pd.read_sql(f"""
-        SELECT DATE(order_datetime) as date,
-               SUM(revenue) as daily_revenue
-        FROM {TABLE_NAME}
-        GROUP BY DATE(order_datetime)
-    """, conn)
+    logger.info("Running anomaly detection")
 
-    conn.close()
+    engine = get_engine()
 
-    mean = df["daily_revenue"].mean()
-    std = df["daily_revenue"].std()
+    query = """
+        SELECT order_datetime, revenue, profit, payment_type
+        FROM sales_cleaned
+    """
 
-    df["rolling_mean"] = df["daily_revenue"].rolling(window=7).mean()
-    df["rolling_std"] = df["daily_revenue"].rolling(window=7).std()
+    df = pd.read_sql(text(query), engine)
 
-    df["rolling_z"] = (
-        df["daily_revenue"] - df["rolling_mean"]
-    ) / df["rolling_std"]
+    df["order_datetime"] = pd.to_datetime(df["order_datetime"])
+    df["date"] = df["order_datetime"].dt.date
 
-    anomalies = df[abs(df["rolling_z"]) > 2]
+    # ---------------------------
+    # DAILY METRICS
+    # ---------------------------
 
-    print("Anomalies detected:")
-    print(anomalies)
+    daily = df.groupby("date").agg(
+        revenue=("revenue", "sum"),
+        profit=("profit", "sum"),
+        transactions=("revenue", "count")
+    )
 
-    return anomalies
+    daily["profit_margin"] = daily["profit"] / daily["revenue"]
+
+    # ---------------------------
+    # Z-SCORE DETECTION
+    # ---------------------------
+
+    daily["rev_z"] = z_score(daily["revenue"])
+    daily["profit_z"] = z_score(daily["profit"])
+    daily["txn_z"] = z_score(daily["transactions"])
+    daily["margin_z"] = z_score(daily["profit_margin"])
+
+    anomaly_mask = (
+        (abs(daily["rev_z"]) > Z_THRESHOLD) |
+        (abs(daily["profit_z"]) > Z_THRESHOLD) |
+        (abs(daily["txn_z"]) > Z_THRESHOLD) |
+        (abs(daily["margin_z"]) > Z_THRESHOLD)
+    )
+
+    anomalies = daily[anomaly_mask]
+
+    logger.info(f"Anomalies detected: {len(anomalies)}")
+
+    daily = daily.reset_index()
+    anomalies = anomalies.reset_index()
+
+    return anomalies, daily

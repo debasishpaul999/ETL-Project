@@ -1,36 +1,52 @@
-import sqlite3
-from config import DB_NAME, TABLE_NAME
+import time
+from tqdm import tqdm
+from sqlalchemy import text
+
+from utils.db_engine import get_engine
+from utils.logger import get_logger
+
+logger = get_logger()
+
+TABLE_NAME = "sales_cleaned"
+BATCH_SIZE = 5000
+
 
 def load_data(df):
-    print("Loading data into database...")
-    df['order_datetime'] = df['order_datetime'].astype(str)
 
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
+    logger.info("Loading data using production UPSERT")
 
-    cursor.execute(f"""
-        CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
-            order_id INTEGER PRIMARY KEY,
-            order_datetime TEXT,
-            product_name TEXT,
-            category TEXT,
-            quantity INTEGER,
-            price REAL,
-            cost REAL,
-            payment_type TEXT,
-            is_weekend BOOLEAN,
-            revenue REAL,
-            total_cost REAL,
-            profit REAL
-        )
-    """)
+    engine = get_engine()  # ✅ properly defined here
 
-    for _, row in df.iterrows():
-        cursor.execute(f"""
-            INSERT OR REPLACE INTO {TABLE_NAME} VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, tuple(row))
+    start_time = time.time()
 
-    conn.commit()
-    conn.close()
+    logger.info(f"Starting load into '{TABLE_NAME}'")
 
-    print("Data loaded successfully.")
+    columns = df.columns.tolist()
+
+    insert_stmt = f"""
+    INSERT INTO {TABLE_NAME} ({', '.join(columns)})
+    VALUES ({', '.join([f':{col}' for col in columns])})
+    AS new
+    ON DUPLICATE KEY UPDATE
+    {', '.join([f"{col} = new.{col}" for col in columns])}
+    """
+
+    total_batches = (len(df) // BATCH_SIZE) + 1
+
+    with engine.begin() as connection:
+
+        for i in tqdm(
+            range(0, len(df), BATCH_SIZE),
+            desc="Loading (mysql)",
+            unit="batch"
+        ):
+
+            batch = df.iloc[i:i + BATCH_SIZE]
+            data = batch.to_dict(orient="records")
+
+            connection.execute(text(insert_stmt), data)
+
+    elapsed = round(time.time() - start_time, 2)
+    throughput = round(len(df) / elapsed, 2)
+
+    logger.info(f"Load completed in {elapsed} sec | {throughput} rows/sec")
