@@ -30,6 +30,7 @@ venv/
 
 *.db
 *.sqlite3
+config.py
 
 # ===============================
 # Reports & Generated Files
