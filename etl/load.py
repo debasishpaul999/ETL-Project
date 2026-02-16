@@ -11,11 +11,45 @@ TABLE_NAME = "sales_cleaned"
 BATCH_SIZE = 5000
 
 
+# ==============================
+# TABLE CREATION FUNCTION
+# ==============================
+def create_table_if_not_exists(engine):
+
+    create_sql = f"""
+    CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
+        order_id INT PRIMARY KEY,
+        order_datetime DATETIME,
+        product_name VARCHAR(100),
+        category VARCHAR(50),
+        quantity INT,
+        price FLOAT,
+        cost FLOAT,
+        payment_type VARCHAR(50),
+        is_weekend BOOLEAN,
+        revenue FLOAT,
+        total_cost FLOAT,
+        profit FLOAT
+    )
+    """
+
+    with engine.begin() as conn:
+        conn.execute(text(create_sql))
+
+    logger.info("Table ensured: sales_cleaned")
+
+
+# ==============================
+# LOAD FUNCTION
+# ==============================
 def load_data(df):
 
     logger.info("Loading data using production UPSERT")
 
-    engine = get_engine()  # ✅ properly defined here
+    engine = get_engine()
+
+    # 🔴 NEW: ensure table exists
+    create_table_if_not_exists(engine)
 
     start_time = time.time()
 
