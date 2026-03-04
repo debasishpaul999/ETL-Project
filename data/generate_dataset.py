@@ -6,8 +6,8 @@ import random
 # -----------------------------
 # CONFIG
 # -----------------------------
-START_DATE = "2024-01-01"
-END_DATE = "2024-12-31"
+START_DATE = "2025-01-01"
+END_DATE = "2025-12-31"
 OUTPUT_PATH = "data/raw_coffee_sales.csv"
 
 np.random.seed(42)

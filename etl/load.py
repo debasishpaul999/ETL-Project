@@ -65,8 +65,6 @@ def load_data(df):
     {', '.join([f"{col} = new.{col}" for col in columns])}
     """
 
-    total_batches = (len(df) // BATCH_SIZE) + 1
-
     with engine.begin() as connection:
 
         for i in tqdm(

@@ -28,11 +28,11 @@ def transform_data(df):
     # -----------------------------
     # Numeric coercion
     # -----------------------------
-    df["price"] = pd.to_numeric(df["price"], errors="coerce")
-    df["cost"] = pd.to_numeric(df["cost"], errors="coerce")
-    df["quantity"] = pd.to_numeric(df["quantity"], errors="coerce")
+    numeric_columns = ["price", "cost", "quantity"]
+    for column in numeric_columns:
+        df[column] = pd.to_numeric(df[column], errors="coerce")
 
-    df = df.dropna(subset=["price", "cost", "quantity"])
+    df = df.dropna(subset=numeric_columns)
 
     # Remove invalid business rows
     df = df[df["quantity"] > 0]

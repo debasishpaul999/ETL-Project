@@ -5,62 +5,106 @@ from utils.logger import get_logger
 
 logger = get_logger()
 
-Z_THRESHOLD = 3
+Z_THRESHOLD = 2.5
+MAD_THRESHOLD = 3.0
+IQR_MULTIPLIER = 1.5
+SCORE_PERCENTILE = 0.95
+METRICS = ["revenue", "profit", "transactions", "profit_margin"]
 
 
-def z_score(series):
-    return (series - series.mean()) / series.std()
+def _safe_z_score(series: pd.Series) -> pd.Series:
+    std = series.std()
+    if std == 0 or pd.isna(std):
+        return pd.Series(0.0, index=series.index)
+    return (series - series.mean()) / std
 
+def _safe_mad_score(series: pd.Series) -> pd.Series:
+    median = series.median()
+    mad = (series - median).abs().median()
+    if mad == 0 or pd.isna(mad):
+        q1, q3 = series.quantile([0.25, 0.75])
+        iqr = q3 - q1
+        if iqr == 0 or pd.isna(iqr):
+            return pd.Series(0.0, index=series.index)
+        robust_std = iqr / 1.349
+        return (series - median) / robust_std
+    return 0.6745 * (series - median) / mad
+
+def _iqr_outlier_flag(series: pd.Series, multiplier: float = IQR_MULTIPLIER) -> pd.Series:
+    q1, q3 = series.quantile([0.25, 0.75])
+    iqr = q3 - q1
+    if iqr == 0 or pd.isna(iqr):
+        return pd.Series(False, index=series.index)
+    
+    lower = q1 - (multiplier * iqr)
+    upper = q3 + (multiplier * iqr)
+    return (series < lower) | (series > upper)
 
 def detect_anomalies():
 
     logger.info("Running anomaly detection")
 
     engine = get_engine()
-
     query = """
-        SELECT order_datetime, revenue, profit, payment_type
+        SELECT
+            DATE(order_datetime) AS date,
+            SUM(revenue) AS revenue,
+            SUM(profit) AS profit,
+            COUNT(*) AS transactions
         FROM sales_cleaned
+        GROUP BY DATE(order_datetime)
+        ORDER BY DATE(order_datetime)
     """
 
-    df = pd.read_sql(text(query), engine)
+    daily = pd.read_sql(text(query), engine)
 
-    df["order_datetime"] = pd.to_datetime(df["order_datetime"])
-    df["date"] = df["order_datetime"].dt.date
+    if daily.empty:
+        logger.warning("No records found for anomaly detection")
+        daily = pd.DataFrame(columns=["date", *METRICS, "anomaly_score"])
+        anomalies = daily.copy()
+        return anomalies, daily
 
-    # ---------------------------
-    # DAILY METRICS
-    # ---------------------------
+    daily["date"] = pd.to_datetime(daily["date"], errors="coerce").dt.date
+    daily = daily.dropna(subset=["date"]).copy()
 
-    daily = df.groupby("date").agg(
-        revenue=("revenue", "sum"),
-        profit=("profit", "sum"),
-        transactions=("revenue", "count")
-    )
+    daily["revenue"] = pd.to_numeric(daily["revenue"], errors="coerce").fillna(0.0)
+    daily["profit"] = pd.to_numeric(daily["profit"], errors="coerce").fillna(0.0)
+    daily["transactions"] = pd.to_numeric(daily["transactions"], errors="coerce").fillna(0.0)
 
-    daily["profit_margin"] = daily["profit"] / daily["revenue"]
+    daily["profit_margin"] = (daily["profit"] / daily["revenue"]).where(daily["revenue"] != 0, 0.0)
 
-    # ---------------------------
-    # Z-SCORE DETECTION
-    # ---------------------------
+    flag_columns = []
+    for metric in METRICS:
+        z_col = f"{metric}_z"
+        mad_col = f"{metric}_mad"
+        iqr_col = f"{metric}_iqr_anomaly"
+        flag_col = f"{metric}_anomaly"
 
-    daily["rev_z"] = z_score(daily["revenue"])
-    daily["profit_z"] = z_score(daily["profit"])
-    daily["txn_z"] = z_score(daily["transactions"])
-    daily["margin_z"] = z_score(daily["profit_margin"])
+        daily[z_col] = _safe_z_score(daily[metric])
+        daily[mad_col] = _safe_mad_score(daily[metric])
+        daily[iqr_col] = _iqr_outlier_flag(daily[metric])
+        daily[flag_col] = (
+            (daily[z_col].abs() > Z_THRESHOLD)
+            | (daily[mad_col].abs() > MAD_THRESHOLD)
+            | daily[iqr_col]
+        )
+        flag_columns.append(flag_col)
 
-    anomaly_mask = (
-        (abs(daily["rev_z"]) > Z_THRESHOLD) |
-        (abs(daily["profit_z"]) > Z_THRESHOLD) |
-        (abs(daily["txn_z"]) > Z_THRESHOLD) |
-        (abs(daily["margin_z"]) > Z_THRESHOLD)
-    )
+    daily["anomaly_score"] = daily[[f"{metric}_z" for metric in METRICS]].abs().max(axis=1)
+    daily["anomaly_reasons"] = daily.apply(
+        lambda row: ", ".join(col.replace("_anomaly", "") for col in flag_columns if row[col]),
+        axis=1,)
 
-    anomalies = daily[anomaly_mask]
+    percentile_cutoff = daily["anomaly_score"].quantile(SCORE_PERCENTILE)
+    anomaly_mask = daily[flag_columns].any(axis=1) | (daily["anomaly_score"] >= percentile_cutoff)
+    anomalies = daily[anomaly_mask].copy()
+
+    if anomalies.empty and not daily.empty:
+        anomalies = daily.nlargest(1, "anomaly_score").copy()
 
     logger.info(f"Anomalies detected: {len(anomalies)}")
 
-    daily = daily.reset_index()
-    anomalies = anomalies.reset_index()
+    daily = daily.sort_values("date").reset_index(drop=True)
+    anomalies = anomalies.sort_values("date").reset_index(drop=True)
 
     return anomalies, daily

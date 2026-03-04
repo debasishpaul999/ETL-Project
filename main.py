@@ -8,6 +8,7 @@ from etl.load import load_data
 from analytics.anomaly import detect_anomalies
 from analytics.dashboard import generate_dashboard
 from analytics.generate_report import generate_pdf_report
+from data.daily_data_gen import ensure_daily_data
 
 from utils.logger import get_logger
 from utils.cli import print_header, print_step, print_success, print_failure
@@ -22,6 +23,13 @@ def run_pipeline(show_dashboard=False):
     print_header()
 
     try:
+        # =============================
+        # DAILY DATA GENERATION
+        # =============================
+        print_step("Checking Daily Data...")
+        ensure_daily_data()
+        print_success("Daily dataset is up to date")
+
         # =============================
         # EXTRACT
         # =============================

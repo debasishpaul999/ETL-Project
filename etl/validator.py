@@ -1,4 +1,5 @@
 import json
+import os
 from utils.logger import get_logger
 
 logger = get_logger()
@@ -47,6 +48,8 @@ def validate_schema(df):
 def validate_data(df):
 
     logger.info("Running data validation")
+
+    os.makedirs("reports", exist_ok=True)
 
     report = {
         "row_count": int(len(df)),
