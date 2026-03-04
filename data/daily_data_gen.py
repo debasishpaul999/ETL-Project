@@ -70,7 +70,10 @@ COST_RATIO_BY_CATEGORY = {
     "Merchandise": (0.55, 0.72),
 }
 DEFAULT_COST_RATIO = (0.4, 0.58)
+<<<<<<< ours
 
+=======
+>>>>>>> theirs
 OUTPUT_COLUMNS = [
     "order_id",
     "order_datetime",
@@ -93,6 +96,19 @@ def _assign_order_ids_by_datetime(df: pd.DataFrame, start_order_id: int) -> pd.D
     df = df.sort_values("order_datetime").reset_index(drop=True)
     df["order_id"] = range(start_order_id, start_order_id + len(df))
     return df
+
+def _sample_cost(price: float, category: str) -> float:
+    """Sample realistic cost by category so margins vary by product type."""
+    min_ratio, max_ratio = COST_RATIO_BY_CATEGORY.get(category, DEFAULT_COST_RATIO)
+    return round(price * np.random.uniform(min_ratio, max_ratio), 2)
+
+
+def _assign_order_ids_by_datetime(df: pd.DataFrame, start_order_id: int) -> pd.DataFrame:
+    """Assign sequential order IDs after sorting rows by order_datetime."""
+    df = df.sort_values("order_datetime").reset_index(drop=True)
+    df["order_id"] = range(start_order_id, start_order_id + len(df))
+    return df
+
 
 def _build_daily_rows(target_date: date, start_order_id: int) -> pd.DataFrame:
     """Generate one day of synthetic coffee sales in the existing project style."""

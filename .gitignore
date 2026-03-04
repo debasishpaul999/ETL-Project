@@ -36,10 +36,7 @@ config.py
 # Reports & Generated Files
 # ===============================
 
-reports/
-*.png
-*.pdf
-*.csv
+
 
 # ===============================
 # IDE

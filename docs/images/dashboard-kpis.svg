@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <rect width="1280" height="720" fill="#f8fafc"/>
+  <text x="60" y="80" font-family="Segoe UI, Arial, sans-serif" font-size="42" fill="#1f4e79">KPI Dashboard Placeholder</text>
+  <text x="60" y="115" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="#5b738b">Replace this file: docs/images/dashboard-kpis.svg</text>
+
+  <rect x="60" y="160" width="360" height="180" rx="12" fill="#ffffff" stroke="#cdd9e5"/>
+  <rect x="460" y="160" width="360" height="180" rx="12" fill="#ffffff" stroke="#cdd9e5"/>
+  <rect x="860" y="160" width="360" height="180" rx="12" fill="#ffffff" stroke="#cdd9e5"/>
+
+  <rect x="60" y="370" width="1160" height="290" rx="12" fill="#ffffff" stroke="#cdd9e5"/>
+
+  <text x="90" y="220" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#4a6075">Revenue KPI</text>
+  <text x="490" y="220" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#4a6075">Profit KPI</text>
+  <text x="890" y="220" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#4a6075">Orders KPI</text>
+  <text x="90" y="430" font-family="Segoe UI, Arial, sans-serif" font-size="22" fill="#4a6075">Detailed Table / Secondary Charts</text>
+</svg>

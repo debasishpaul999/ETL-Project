@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <rect width="1280" height="720" fill="#f4f7fb"/>
+  <rect x="40" y="40" width="1200" height="90" rx="12" fill="#1f4e79"/>
+  <text x="70" y="95" font-family="Segoe UI, Arial, sans-serif" font-size="36" fill="#ffffff">Dashboard Placeholder</text>
+  <text x="70" y="122" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="#d9e6f2">Replace this file: docs/images/dashboard-overview.svg</text>
+
+  <rect x="40" y="160" width="280" height="130" rx="10" fill="#ffffff" stroke="#c7d4e2"/>
+  <rect x="340" y="160" width="280" height="130" rx="10" fill="#ffffff" stroke="#c7d4e2"/>
+  <rect x="640" y="160" width="280" height="130" rx="10" fill="#ffffff" stroke="#c7d4e2"/>
+  <rect x="940" y="160" width="300" height="130" rx="10" fill="#ffffff" stroke="#c7d4e2"/>
+
+  <rect x="40" y="320" width="780" height="360" rx="10" fill="#ffffff" stroke="#c7d4e2"/>
+  <rect x="850" y="320" width="390" height="360" rx="10" fill="#ffffff" stroke="#c7d4e2"/>
+
+  <text x="70" y="200" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#4a6075">KPI Card 1</text>
+  <text x="370" y="200" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#4a6075">KPI Card 2</text>
+  <text x="670" y="200" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#4a6075">KPI Card 3</text>
+  <text x="970" y="200" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#4a6075">KPI Card 4</text>
+  <text x="70" y="360" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="#4a6075">Main Trend Chart Area</text>
+  <text x="880" y="360" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="#4a6075">Breakdown Panel</text>
+</svg>
