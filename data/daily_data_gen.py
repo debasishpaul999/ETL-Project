@@ -12,17 +12,65 @@ logger = get_logger()
 DATASET_PATH = Path("data/raw_coffee_sales.csv")
 PAYMENT_TYPES = ["UPI", "Card", "Cash"]
 PRODUCTS = {
-    "Latte": {"category": "Beverage", "price_range": (180, 250)},
-    "Cappuccino": {"category": "Beverage", "price_range": (170, 240)},
-    "Americano": {"category": "Beverage", "price_range": (150, 220)},
-    "Cold Brew": {"category": "Beverage", "price_range": (200, 280)},
-    "Mocha": {"category": "Beverage", "price_range": (190, 260)},
-    "Espresso": {"category": "Beverage", "price_range": (120, 180)},
-    "Croissant": {"category": "Food", "price_range": (120, 200)},
-    "Muffin": {"category": "Food", "price_range": (100, 180)},
-    "Sandwich": {"category": "Food", "price_range": (150, 250)},
-    "Brownie": {"category": "Food", "price_range": (90, 160)},
+    "Caffe Latte": {"category": "Hot Coffee", "price_range": (210, 290)},
+    "Cappuccino": {"category": "Hot Coffee", "price_range": (200, 280)},
+    "Caffe Americano": {"category": "Hot Coffee", "price_range": (180, 250)},
+    "Flat White": {"category": "Hot Coffee", "price_range": (220, 300)},
+    "Caramel Macchiato": {"category": "Hot Coffee", "price_range": (240, 330)},
+    "Caffe Mocha": {"category": "Hot Coffee", "price_range": (230, 320)},
+    "White Chocolate Mocha": {"category": "Hot Coffee", "price_range": (250, 340)},
+    "Espresso": {"category": "Hot Coffee", "price_range": (130, 190)},
+    "Espresso Con Panna": {"category": "Hot Coffee", "price_range": (170, 230)},
+    "Vanilla Sweet Cream Cold Brew": {"category": "Iced Coffee", "price_range": (230, 320)},
+    "Salted Caramel Cream Cold Brew": {"category": "Iced Coffee", "price_range": (240, 330)},
+    "Iced Caffe Latte": {"category": "Iced Coffee", "price_range": (210, 290)},
+    "Iced Caffe Mocha": {"category": "Iced Coffee", "price_range": (230, 320)},
+    "Iced Caramel Macchiato": {"category": "Iced Coffee", "price_range": (240, 330)},
+    "Nitro Cold Brew": {"category": "Iced Coffee", "price_range": (250, 340)},
+    "Iced Shaken Espresso": {"category": "Iced Coffee", "price_range": (220, 310)},
+    "Matcha Tea Latte": {"category": "Tea", "price_range": (220, 300)},
+    "Chai Tea Latte": {"category": "Tea", "price_range": (200, 280)},
+    "English Breakfast Tea": {"category": "Tea", "price_range": (160, 230)},
+    "Earl Grey Tea": {"category": "Tea", "price_range": (160, 230)},
+    "Hibiscus Herbal Tea": {"category": "Tea", "price_range": (170, 240)},
+    "Iced Black Tea Lemonade": {"category": "Tea", "price_range": (190, 270)},
+    "Iced Peach Green Tea": {"category": "Tea", "price_range": (210, 290)},
+    "Java Chip Frappuccino": {"category": "Frappuccino", "price_range": (260, 360)},
+    "Caramel Frappuccino": {"category": "Frappuccino", "price_range": (250, 350)},
+    "Mocha Frappuccino": {"category": "Frappuccino", "price_range": (250, 350)},
+    "Matcha Frappuccino": {"category": "Frappuccino", "price_range": (250, 350)},
+    "Vanilla Cream Frappuccino": {"category": "Frappuccino", "price_range": (240, 340)},
+    "Chocolate Croissant": {"category": "Bakery", "price_range": (180, 250)},
+    "Butter Croissant": {"category": "Bakery", "price_range": (160, 230)},
+    "Blueberry Muffin": {"category": "Bakery", "price_range": (150, 220)},
+    "Banana Bread": {"category": "Bakery", "price_range": (170, 240)},
+    "New York Cheesecake": {"category": "Bakery", "price_range": (210, 300)},
+    "Double Chocolate Brownie": {"category": "Bakery", "price_range": (150, 220)},
+    "Paneer Tikka Sandwich": {"category": "Sandwich", "price_range": (230, 320)},
+    "Smoked Chicken Sandwich": {"category": "Sandwich", "price_range": (250, 340)},
+    "Veggie & Cheese Sandwich": {"category": "Sandwich", "price_range": (220, 310)},
+    "Classic Potato Wedges": {"category": "Snack", "price_range": (140, 210)},
+    "Masala Chips": {"category": "Snack", "price_range": (90, 150)},
+    "Mixed Nuts Pack": {"category": "Snack", "price_range": (130, 210)},
+    "House Blend Beans 250g": {"category": "Retail Beans", "price_range": (420, 620)},
+    "Espresso Roast Beans 250g": {"category": "Retail Beans", "price_range": (440, 650)},
+    "French Roast Beans 250g": {"category": "Retail Beans", "price_range": (430, 640)},
+    "Reusable Tumbler": {"category": "Merchandise", "price_range": (300, 520)},
+    "Ceramic Mug": {"category": "Merchandise", "price_range": (280, 480)},
 }
+COST_RATIO_BY_CATEGORY = {
+    "Hot Coffee": (0.28, 0.4),
+    "Iced Coffee": (0.3, 0.43),
+    "Tea": (0.24, 0.36),
+    "Frappuccino": (0.32, 0.45),
+    "Bakery": (0.45, 0.62),
+    "Sandwich": (0.52, 0.68),
+    "Snack": (0.4, 0.58),
+    "Retail Beans": (0.58, 0.74),
+    "Merchandise": (0.55, 0.72),
+}
+DEFAULT_COST_RATIO = (0.4, 0.58)
+
 OUTPUT_COLUMNS = [
     "order_id",
     "order_datetime",
@@ -35,6 +83,16 @@ OUTPUT_COLUMNS = [
     "is_weekend",
 ]
 
+def _sample_cost(price: float, category: str) -> float:
+    """Sample realistic cost by category so margins vary by product type."""
+    min_ratio, max_ratio = COST_RATIO_BY_CATEGORY.get(category, DEFAULT_COST_RATIO)
+    return round(price * np.random.uniform(min_ratio, max_ratio), 2)
+
+def _assign_order_ids_by_datetime(df: pd.DataFrame, start_order_id: int) -> pd.DataFrame:
+    """Assign sequential order IDs after sorting rows by order_datetime."""
+    df = df.sort_values("order_datetime").reset_index(drop=True)
+    df["order_id"] = range(start_order_id, start_order_id + len(df))
+    return df
 
 def _build_daily_rows(target_date: date, start_order_id: int) -> pd.DataFrame:
     """Generate one day of synthetic coffee sales in the existing project style."""
@@ -50,7 +108,7 @@ def _build_daily_rows(target_date: date, start_order_id: int) -> pd.DataFrame:
         product_info = PRODUCTS[product_name]
 
         price = round(np.random.uniform(*product_info["price_range"]), 2)
-        cost = round(price * np.random.uniform(0.4, 0.6), 2)
+        cost = _sample_cost(price=price, category=product_info["category"])
         quantity = np.random.randint(1, 4)
 
         order_time = pd.Timestamp(target_date) + pd.Timedelta(
@@ -72,7 +130,8 @@ def _build_daily_rows(target_date: date, start_order_id: int) -> pd.DataFrame:
             }
         )
 
-    return pd.DataFrame(rows, columns=OUTPUT_COLUMNS)
+    day_df = pd.DataFrame(rows, columns=OUTPUT_COLUMNS)
+    return _assign_order_ids_by_datetime(day_df, start_order_id=start_order_id)
 
 
 def ensure_daily_data(dataset_path: Path = DATASET_PATH, target_date: date | None = None) -> pd.DataFrame:
